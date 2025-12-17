@@ -12,6 +12,9 @@
 #include <sys/stat.h> // for stat, lstat
 #include <errno.h>   // for errno
 
+// Declare external environ variable
+extern char **environ;
+
 #define X(name, handler, description) {name, handler},
 myshell_builtin_command_t myshell_builtin_commands[] = {
     MYSHELL_LIST_BUILTIN_COMMANDS
@@ -145,7 +148,17 @@ MYSHELL_DEFINE_COMMAND_HANDLER(myshell_cmd_unset) {
 // Handler for 'env' command
 MYSHELL_DEFINE_COMMAND_HANDLER(myshell_cmd_env) {
     (void)argv; // Suppress unused parameter warning
-    extern char **environ;
+    /*
+    The `environ` variable is assigned by the **operating system** when your program starts.
+
+    Specifically:
+
+    - **The C runtime startup code** (before `main()` is called) initializes `environ` to point to the environment array
+    - **The kernel** passes the environment strings to your process when it's created via `execve()` or similar system calls
+    - **The dynamic linker/loader** (like `ld.so` on Linux) sets it up during process initialization
+
+    We're just declaring it as `extern` to access this pre-existing global variable that's already been set up by the system. It's part of the standard POSIX environment, maintained automatically by the C library and the operating system.
+    */
     for (char **env = environ; *env != NULL; env++) {
         printf("%s\n", *env);
     }

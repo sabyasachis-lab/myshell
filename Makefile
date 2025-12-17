@@ -97,6 +97,7 @@ analyze-core: $(TARGET)
 	fi
 
 # Debug build with extra flags
+# Debug build
 debug: CFLAGS += -DDEBUG -O0
 debug: $(TARGET)
 
@@ -124,6 +125,11 @@ help:
 	@echo "  1. make run          # Run with core dumps enabled"
 	@echo "  2. make analyze-core # Analyze crash if it occurs"
 	@echo "  3. make debug-run    # Run in GDB for interactive debugging"
+	@echo ""
+	@echo "Logging modes (runtime options):"
+	@echo "  Console: ./mysh -v CONSOLE       # Logs to stderr"
+	@echo "  File:    ./mysh -v FILE -f path  # Logs to file"
+	@echo "  Default: ./mysh                  # No logging"
 
 # Declare phony targets
 .PHONY: all clean rebuild install uninstall run debug release help setup-core debug-run analyze-core
