@@ -192,13 +192,9 @@ Works with both built-in and external commands.
 
 Feel free to submit issues and enhancement requests!
 
-## License
-
-[Specify your license here]
-
 ## Authors
 
-[Specify authors here]
+Sabyasachi Mandal
 
 ## Version History
 
