@@ -76,3 +76,42 @@ fi
 echo ""
 
 echo "=== Pipe Tests Complete ==="
+
+echo ""
+echo "=== Testing Pipe with Output Redirection ==="
+
+# Test 8: Simple pipe with redirection
+echo "echo hello pipe | /bin/cat > pipe_out.txt
+exit" | timeout 2 ../mysh > /dev/null 2>&1
+if [ -f pipe_out.txt ] && grep -q "hello pipe" pipe_out.txt; then
+    echo "✓ Test 8 passed: Simple pipe with > redirection"
+    rm pipe_out.txt
+else
+    echo "✗ Test 8 failed: Simple pipe with > redirection"
+fi
+
+# Test 9: Multi-pipe with redirection
+echo "echo one two three | /bin/tr ' ' '\n' | /bin/wc -l > count.txt
+exit" | timeout 2 ../mysh > /dev/null 2>&1
+if [ -f count.txt ] && [ "$(cat count.txt | tr -d ' ')" = "3" ]; then
+    echo "✓ Test 9 passed: Multi-pipe with > redirection"
+    rm count.txt
+else
+    echo "✗ Test 9 failed: Multi-pipe with > redirection"
+    [ -f count.txt ] && rm count.txt
+fi
+
+# Test 10: Pipe with append redirection
+echo "echo first line | /bin/cat > append.txt
+echo second line | /bin/cat >> append.txt
+exit" | timeout 2 ../mysh > /dev/null 2>&1
+if [ -f append.txt ] && grep -q "first line" append.txt && grep -q "second line" append.txt; then
+    echo "✓ Test 10 passed: Pipe with >> append redirection"
+    rm append.txt
+else
+    echo "✗ Test 10 failed: Pipe with >> append redirection"
+    [ -f append.txt ] && rm append.txt
+fi
+
+echo ""
+echo "All pipe tests completed!"

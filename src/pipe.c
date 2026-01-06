@@ -100,7 +100,7 @@ static int execute_command_in_pipeline(char** tokens, unsigned int token_count, 
 }
 
 // Execute a pipeline of commands
-int myshell_execute_pipeline(myshell_pipeline_t* pipeline) {
+int myshell_execute_pipeline(myshell_pipeline_t* pipeline, const char* redirect_file, bool redirect_append) {
     if (pipeline->command_count == 0) {
         return -1;
     }
@@ -113,6 +113,20 @@ int myshell_execute_pipeline(myshell_pipeline_t* pipeline) {
     }
     
     MYSHELL_LOG(MYSHELL_LOG_LEVEL_DEBUG, "Executing pipeline with %u commands", pipeline->command_count);
+    
+    // Handle output redirection for the last command
+    int redirect_fd = -1;
+    if (redirect_file != NULL) {
+        const char* mode = redirect_append ? "a" : "w";
+        FILE* fp = fopen(redirect_file, mode);
+        if (fp == NULL) {
+            perror("fopen");
+            fprintf(stderr, "Error: Cannot open file '%s' for writing\n", redirect_file);
+            return -1;
+        }
+        redirect_fd = fileno(fp);
+        MYSHELL_LOG(MYSHELL_LOG_LEVEL_DEBUG, "Will redirect final output to: %s (%s mode)", redirect_file, mode);
+    }
     
     int prev_pipe_read = STDIN_FILENO;
     pid_t* pids = malloc(sizeof(pid_t) * pipeline->command_count);
@@ -136,7 +150,14 @@ int myshell_execute_pipeline(myshell_pipeline_t* pipeline) {
         
         // Determine input and output file descriptors
         int input_fd = (i == 0) ? STDIN_FILENO : prev_pipe_read;
-        int output_fd = (i == pipeline->command_count - 1) ? STDOUT_FILENO : pipe_fds[1];
+        int output_fd;
+        
+        // Last command: use redirect_fd if set, otherwise stdout
+        if (i == pipeline->command_count - 1) {
+            output_fd = (redirect_fd != -1) ? redirect_fd : STDOUT_FILENO;
+        } else {
+            output_fd = pipe_fds[1];
+        }
         
         MYSHELL_LOG(MYSHELL_LOG_LEVEL_DEBUG, "Executing command %u: %s", i, pipeline->commands[i].tokens[0]);
         
@@ -169,6 +190,11 @@ int myshell_execute_pipeline(myshell_pipeline_t* pipeline) {
         if (i < pipeline->command_count - 1) {
             prev_pipe_read = pipe_fds[0];
         }
+    }
+    
+    // Close redirect fd if it was opened
+    if (redirect_fd != -1) {
+        close(redirect_fd);
     }
     
     // Wait for all child processes

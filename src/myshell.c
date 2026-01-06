@@ -652,12 +652,10 @@ void myshell_process_buffer() {
             return;
         }
         
-        // Note: Pipelines don't support output redirection yet (would need to redirect last command only)
-        if (myshell_term_input.redirect_file != NULL) {
-            printf("Warning: Output redirection not supported with pipes yet\n");
-        }
-        
-        int result = myshell_execute_pipeline(&pipeline);
+        // Execute pipeline with output redirection support
+        int result = myshell_execute_pipeline(&pipeline, 
+                                              myshell_term_input.redirect_file,
+                                              myshell_term_input.redirect_append);
         if (result < 0) {
             printf("Error: Pipeline execution failed\n");
         }
