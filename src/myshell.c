@@ -6,6 +6,7 @@
 #include "hash_table.h"
 #include "external_commands.h"
 #include "output_redirection.h"
+#include "pipe.h"
 #include <signal.h>
 #include <string.h>  // for strlen, strcmp
 #include <stdlib.h>  // for malloc, free, exit
@@ -632,7 +633,38 @@ void myshell_process_buffer() {
     myshell_extract_tokens_from_buffer();
     fflush(stdout);
 
-    // Setup output redirection if needed
+    // Check if there are pipes in the command
+    bool has_pipe = false;
+    for (unsigned int i = 0; i < myshell_term_input.token_count; i++) {
+        if (myshell_term_input.tokens[i] != NULL && strcmp(myshell_term_input.tokens[i], "|") == 0) {
+            has_pipe = true;
+            break;
+        }
+    }
+    
+    // If there are pipes, execute as pipeline
+    if (has_pipe) {
+        MYSHELL_LOG(MYSHELL_LOG_LEVEL_DEBUG, "Detected pipe in command, executing as pipeline");
+        
+        myshell_pipeline_t pipeline;
+        if (myshell_parse_pipeline(myshell_term_input.tokens, myshell_term_input.token_count, &pipeline) < 0) {
+            printf("Error: Failed to parse pipeline\n");
+            return;
+        }
+        
+        // Note: Pipelines don't support output redirection yet (would need to redirect last command only)
+        if (myshell_term_input.redirect_file != NULL) {
+            printf("Warning: Output redirection not supported with pipes yet\n");
+        }
+        
+        int result = myshell_execute_pipeline(&pipeline);
+        if (result < 0) {
+            printf("Error: Pipeline execution failed\n");
+        }
+        return;
+    }
+
+    // Setup output redirection if needed (for non-piped commands)
     myshell_redirect_state_t redirect_state = 
         myshell_setup_output_redirection(myshell_term_input.redirect_file, 
                                          myshell_term_input.redirect_append);
